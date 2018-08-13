@@ -1,0 +1,224 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Brick breaker</title>
+    <style type="text/css">
+        html {
+            background-color: #a9a9a9;
+            margin: 0;
+            padding: 3rem;
+            font-family: sans-serif;
+        }
+
+        body {
+            width: 600px;
+            margin: auto;
+            background-color: #fff;
+            padding: 3rem;
+        }
+
+        canvas {
+            border: 1px solid #000;
+        }
+    </style>
+</head>
+<body>
+<h1>Brick breaker</h1>
+<p>
+    <strong id="score">Score : 0</strong>
+</p>
+<canvas width="600" height="400" id="canvas"></canvas>
+
+<script type="text/javascript">
+  const canvas = document.getElementById('canvas');
+  const scoreElem = document.getElementById('score');
+  const width = canvas.width;
+  const height = canvas.height;
+  const ctx = canvas.getContext('2d');
+
+
+  let ballX = width / 2 - 180;
+  let ballY = height / 2;
+  const radius = 10;
+  const ballSpeed = 5;
+  let ballDX = ballSpeed;
+  let ballDY = -ballSpeed;
+
+  let bumperX = width / 2;
+  const bumperH = 20;
+  const bumperW = 100;
+  const bumperSpeed = 10;
+
+  let goLeft = false;
+  let goRight = false;
+
+  const brickCols = 7;
+  const brickRows = 3;
+  const brickWidth = 50;
+  const brickHeight = 20;
+  const brickPadding = 30;
+  const brickOffsetTop = 30;
+  const brickOffsetLeft = 30;
+  const bricks = [];
+
+  for (let row = 0; row < brickRows; row++) {
+    bricks[row] = [];
+
+    for (let col = 0; col < brickCols; col++) {
+      bricks[row][col] = {
+        x: brickOffsetLeft + col * (brickWidth + brickPadding),
+        y: brickOffsetTop + row * (brickHeight + brickPadding),
+        active: true,
+      };
+    }
+  }
+
+  const startX = Math.floor(Math.random() * (width - bumperW) + bumperW / 2);
+  ballX = startX;
+  ballY = height - bumperH - 2 * radius;
+  bumperX = startX;
+
+  const drawBall = (x, y) => {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    ctx.closePath();
+  };
+
+  const drawBumper = (x) => {
+    ctx.beginPath();
+    ctx.rect(x - bumperW / 2, height - bumperH - 10, bumperW, bumperH - 10);
+    ctx.fillStyle = '#0000ff';
+    ctx.fill();
+    ctx.closePath();
+  };
+
+  const drawBricks = () => {
+    for (let row = 0; row < brickRows; row++) {
+      for (let col = 0; col < brickCols; col++) {
+        const brick = bricks[row][col];
+
+        if (!brick.active)
+          continue;
+
+        ctx.beginPath();
+        ctx.rect(brick.x, brick.y, brickWidth, brickHeight);
+        ctx.fillStyle = '#8e8e8e';
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+  };
+
+  const draw = () => {
+    ctx.clearRect(0, 0, width, height);
+    drawBricks();
+    drawBall(ballX, ballY);
+    drawBumper(bumperX);
+  };
+
+  const collision = () => {
+    let futureBX = ballX + ballDX;
+    let futureBY = ballY + ballDY;
+
+    for (let row = 0; row < brickRows; row++) {
+      for (let col = 0; col < brickCols; col++) {
+        const brick = bricks[row][col];
+        if (brick.active) {
+          if (futureBX > brick.x - radius
+            && futureBX < brick.x + brickWidth + radius
+            && futureBY > brick.y - radius
+            && futureBY < brick.y + brickHeight + radius
+          ) {
+            brick.active = false;
+
+            if (
+              (futureBX < brick.x && ballDX > 0)
+              || (futureBY > brick.x + brickWidth && ballDX < 0)
+            )
+              ballDX = -ballDX;
+
+            if (
+              (futureBY < brick.y && ballDY > 0)
+              || (futureBY > brick.y + brickHeight && ballDY < 0)
+            )
+              ballDY = -ballDY;
+          }
+        }
+      }
+    }
+
+
+    if (futureBX < radius || futureBX > width - radius)
+      ballDX = -ballDX;
+
+    if (futureBY < radius
+      || (futureBY > height - bumperH - radius
+        && futureBY < height - bumperH / 2 - radius
+        && (Math.abs(ballX - bumperX) < bumperW / 2))
+    ) {
+      ballDY = -ballDY;
+    }
+
+    /*
+        if (futureBY > height - bumperH - radius
+          && futureBY < height - bumperH / 4 - radius
+          && (Math.abs(ballX - bumperX) < bumperW / 2))
+          ballDX += (ballX - bumperX) / 8;
+    */
+
+    if (futureBY > height) {
+      // alert('Game over');
+      location.reload();
+    }
+  };
+
+  document.addEventListener('keydown', (event) => {
+    if (event.keyCode === 39)
+      goRight = true;
+    if (event.keyCode === 37)
+      goLeft = true;
+  });
+
+  document.addEventListener('keyup', (event) => {
+    if (event.keyCode === 39)
+      goRight = false;
+    if (event.keyCode === 37)
+      goLeft = false;
+  });
+
+  const displayScore = () => {
+    let score = 0;
+    for (let row = 0; row < brickRows; row++) {
+      for (let col = 0; col < brickCols; col++) {
+        if (!bricks[row][col].active)
+          score++;
+      }
+    }
+
+    scoreElem.innerText = `Score : ${score * 5}`;
+
+    if (score > 20)
+      location.reload();
+  };
+
+  game = () => {
+    draw();
+    displayScore();
+    collision();
+    ballX += ballDX;
+    ballY += ballDY;
+    if (goRight && bumperX < width - bumperW / 2)
+      bumperX += bumperSpeed;
+    if (goLeft && bumperX > bumperW / 2)
+      bumperX -= bumperSpeed;
+
+    requestAnimationFrame(game);
+  };
+
+  requestAnimationFrame(game);
+</script>
+</body>
+</html>
